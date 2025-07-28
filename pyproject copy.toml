@@ -1,5 +1,4 @@
 # file: pyproject.toml
-
 [project]
 name = "code-to-pdf"
 version = "0.1.0"
@@ -12,8 +11,3 @@ dependencies = [
 
 [project.scripts]
 code2pdf = "code_to_pdf.cli:main"
-
-
-[tool.setuptools.packages.find]
-include = ["code_to_pdf"]
-exclude = ["pdfs"]

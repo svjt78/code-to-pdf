@@ -1,7 +1,6 @@
-# code_to_pdf/cli.py
-
 import argparse
 import logging
+import time
 from pathlib import Path
 
 from .scanner import scan_files
@@ -10,7 +9,14 @@ from .toc import build_toc
 from .builder import build_html, write_pdf
 from .structure import generate_structure_txt, render_structure_html
 
+# Default file extensions (without 'txt')
+DEFAULT_EXTS = "py,js,json,yml,ini,dev,prod,ts,tsx,java,cpp,css,html,md"
+DEFAULT_NAMES = "Dockerfile"
+
 def main():
+    # Start timing
+    start_time = time.perf_counter()
+
     parser = argparse.ArgumentParser(
         prog="code2pdf",
         description="Export source files to a syntax-highlighted PDF, with project structure"
@@ -29,19 +35,19 @@ def main():
     parser.add_argument(
         "--exts",
         type=str,
-        default="py,js,json,yml,ini,txt,dev,prod,ts,tsx,java,cpp,css,html,md",
+        default=DEFAULT_EXTS,
         help="Comma-separated file extensions to include (without the dot)"
     )
     parser.add_argument(
         "--names",
         type=str,
-        default="Dockerfile",
+        default=DEFAULT_NAMES,
         help="Comma-separated exact filenames to include (e.g. Dockerfile)"
     )
     parser.add_argument(
         "--tree-depth",
         type=int,
-        default=4,
+        default=3,
         help="Depth for project structure tree (passed to `tree -L`)"
     )
     parser.add_argument(
@@ -62,8 +68,13 @@ def main():
         format="%(levelname)s: %(message)s"
     )
 
+    # Resolve project root
     root = args.root.resolve()
     logging.info(f"🔍 Scanning for source files in: {root}")
+
+    # Treat any relative output path as relative to the parent of the project root
+    if not args.output.is_absolute():
+        args.output = root.parent / args.output
 
     # Parse include patterns
     exts_list = [e.strip() for e in args.exts.split(",") if e.strip()]
@@ -97,15 +108,20 @@ def main():
         logging.info(f"📝 Wrote debug.html at {debug_path}")
 
     # Generate project structure via `tree -L <depth>`, render and append
-    logging.info(f"🌲 Generating project structure (depth={args.tree_depth})…")
-    tree_txt = generate_structure_txt(root, depth=args.tree_depth)
-    tree_html = render_structure_html(tree_txt, depth=args.tree_depth)
-    html = html.replace("</body></html>", f"{tree_html}</body></html>")
+    #logging.info(f"🌲 Generating project structure (depth={args.tree_depth})…")
+    #tree_txt = generate_structure_txt(root, depth=args.tree_depth)
+    #tree_html = render_structure_html(tree_txt, depth=args.tree_depth)
+    #html = html.replace("</body></html>", f"{tree_html}</body></html>")
 
     # Generate the final PDF
     logging.info(f"📄 Writing PDF to {args.output}…")
     write_pdf(html, args.output)
     print(f"✅ PDF generated: {args.output}")
+
+    # End timing and report
+    elapsed = time.perf_counter() - start_time
+    mins = elapsed / 60
+    print(f"Total time taken: {elapsed:.2f} seconds ({mins:.2f} minutes)")
 
 
 if __name__ == "__main__":

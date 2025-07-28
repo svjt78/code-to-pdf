@@ -73,6 +73,16 @@ def scan_files(
         rel = path.relative_to(root).as_posix()
         logging.debug(f"🔎  considering {rel} ({tag})")
 
+        # Skip the generated project structure file
+        if path.name == "project_structure.txt":
+            logging.debug(f"     • SKIP (generated structure file)")
+            return False
+
+        # Skip npm lockfile (we don’t want that in our PDF)
+        if path.name == "package-lock.json":
+            logging.debug(f"     • SKIP (npm lockfile)")
+            return False
+
         if is_ignored(rel, specs, root):
             return False
 
@@ -89,7 +99,7 @@ def scan_files(
         # Size guard
         size = path.stat().st_size
         if size > max_size:
-            logging.debug(f"     • SKIP (>{max_size} bytes)")
+            logging.debug(f"     • SKIP (> {max_size} bytes)")
             return False
 
         logging.debug(f"   ✅ yielding {rel}")
